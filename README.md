@@ -56,13 +56,15 @@ Stream Deck+ の限られた表示領域で視認性を最大化するため、*
 
 ### ステータスとカラー
 
-| 残量 | ステータス | カラー |
-|------|-----------|--------|
-| 26 % 以上 | `normal` | 緑 `#4caf50` |
-| 11〜25 % | `warning` | 橙 `#ff9800` |
-| 0〜10 % | `critical` | 赤 `#f44336` |
-| 取得失敗 | `error` | 赤 `#f44336` |
-| 未取得 | `unknown` | 灰 `#9e9e9e` |
+内部ステータス名と、タッチストリップに実際に表示されるバッジラベルは異なります。
+
+| 残量 | 内部ステータス | カラー | バッジ表示（Minimal ビュー） |
+|------|--------------|--------|--------------------------|
+| 26 % 以上 | `normal` | 緑 `#4caf50` | _(表示なし)_ |
+| 11〜25 % | `warning` | 橙 `#ff9800` | `LOW` |
+| 0〜10 % | `critical` | 赤 `#f44336` | `CRITICAL` |
+| 取得失敗 | `error` | 赤 `#f44336` | `ERROR` |
+| 未取得 | `unknown` | 灰 `#9e9e9e` | `---` |
 
 ---
 
@@ -212,8 +214,8 @@ Codex は `~/.codex/auth.json` を自動参照するため設定不要です。
 ### テスト
 
 ```bash
-pnpm --filter @ai-monitor/shared test     # Zod スキーマ検証（20 テスト）
-pnpm --filter @ai-monitor/collector test  # プロバイダ + ユーティリティ（30+ テスト）
+pnpm --filter @ai-monitor/shared test     # Zod スキーマ検証（21 テスト）
+pnpm --filter @ai-monitor/collector test  # プロバイダ + ユーティリティ（32 テスト）
 ```
 
 ---
