@@ -28,6 +28,7 @@
             "UUID": "com.antigravity.aimonitor.monitor",
             "Icon": "imgs/actions/monitor",
             "Tooltip": "Displays remaining quota and credits for Claude, xAI, or Codex.",
+            "PropertyInspectorPath": "property-inspector/index.html",
             "Controllers": ["Encoder"],
             "States": [
                 {
