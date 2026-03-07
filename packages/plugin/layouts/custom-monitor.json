@@ -1,42 +1,45 @@
-[
-    {
-        "key": "provider",
-        "type": "text",
-        "rect": [3, 4, 120, 18],
-        "font": { "size": 11 },
-        "alignment": "left",
-        "value": "---"
-    },
-    {
-        "key": "status",
-        "type": "text",
-        "rect": [123, 4, 74, 18],
-        "font": { "size": 11 },
-        "alignment": "right",
-        "value": ""
-    },
-    {
-        "key": "percent",
-        "type": "text",
-        "rect": [3, 20, 194, 46],
-        "font": { "size": 40, "weight": 700 },
-        "alignment": "center",
-        "value": "--"
-    },
-    {
-        "key": "bar",
-        "type": "bar",
-        "rect": [3, 68, 194, 12],
-        "value": 0,
-        "range": { "min": 0, "max": 100 },
-        "subtype": 4
-    },
-    {
-        "key": "reset",
-        "type": "text",
-        "rect": [3, 83, 194, 14],
-        "font": { "size": 10 },
-        "alignment": "right",
-        "value": ""
-    }
-]
+{
+    "id": "custom-monitor",
+    "items": [
+        {
+            "key": "provider",
+            "type": "text",
+            "rect": [3, 4, 120, 18],
+            "font": { "size": 11 },
+            "alignment": "left",
+            "value": "---"
+        },
+        {
+            "key": "status",
+            "type": "text",
+            "rect": [123, 4, 74, 18],
+            "font": { "size": 11 },
+            "alignment": "right",
+            "value": ""
+        },
+        {
+            "key": "percent",
+            "type": "text",
+            "rect": [3, 20, 194, 46],
+            "font": { "size": 40, "weight": 700 },
+            "alignment": "center",
+            "value": "--"
+        },
+        {
+            "key": "bar",
+            "type": "bar",
+            "rect": [3, 68, 194, 12],
+            "value": 0,
+            "range": { "min": 0, "max": 100 },
+            "subtype": 4
+        },
+        {
+            "key": "reset",
+            "type": "text",
+            "rect": [3, 83, 194, 14],
+            "font": { "size": 10 },
+            "alignment": "right",
+            "value": ""
+        }
+    ]
+}

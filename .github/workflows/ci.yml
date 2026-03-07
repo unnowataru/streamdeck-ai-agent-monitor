@@ -82,8 +82,10 @@ jobs:
 
       - name: Package plugin
         run: |
-          cd packages/plugin
-          pnpm --package=@elgato/cli dlx streamdeck pack --output ../../dist
+          mkdir -p dist
+          cp -r packages/plugin com.antigravity.aimonitor.sdPlugin
+          cd com.antigravity.aimonitor.sdPlugin
+          pnpm --package=@elgato/cli dlx streamdeck pack --output ../dist
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
