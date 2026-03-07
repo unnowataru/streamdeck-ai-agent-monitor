@@ -1,95 +1,190 @@
-# Stream Deck+ AI Agent Rate Monitor
+# Stream Deck+ AI Agent Monitor
 
-このリポジトリは、Elgato Stream Deck+ 上に Claude、xAI、Codex の利用残量や課金バジェットを表示するためのプロジェクトです。
+Elgato Stream Deck+ のエンコーダー（ダイヤル）とタッチストリップを使い、Claude・xAI・Codex の API 残量やクレジット残高をリアルタイムで手元に表示するプラグインです。
 
-AI エージェントの自律稼働が一般的になる中、意図しないトークンの大量消費による「サイレントな稼働停止」や「予算超過」を防ぐための、物理的な監視・警告デバイスとして機能させることを目的としています。
+AI エージェントを自律稼働させる環境において、画面を一切切り替えずに「今どれだけ残っているか」を物理デバイスで把握し、サイレントな稼働停止や予算超過を防ぐことを目的としています。
 
-現時点では意図的にスコープを絞っています。2026年3月7日時点では設計メモと構想整理のみを含み、まだプラグイン本体の実装コードは入っていません。
+## 実装状況
 
-## 解決したい課題
+| Task | 内容 | 状態 |
+|------|------|------|
+| 1 | pnpm ワークスペース構成・依存関係セットアップ | ✅ 完了 |
+| 2 | 共通 Zod スキーマ定義（`packages/shared`） | ✅ 完了 |
+| 3 | ローカルコレクター実装（`packages/collector`） | ✅ 完了 |
+| 4 | Stream Deck プラグイン スケルトン（`packages/plugin`） | ✅ 完了 |
+| 5 | IPC・フィードバック統合、閾値警告 UI | 🔲 未着手 |
 
-AI を日常的に深く、あるいはエージェントとして自動で動かしているユーザーにとって、以下の状況を瞬時に把握することは極めて重要です。
+## 解決する課題
 
-- Claude / Codex: 次のサブスクリプション利用枠リセットまで、あと何%残っているか。いつリセットされるか。
-- xAI: API にチャージしたプリペイド残高はあといくら残っているか。
-- 作業中の PC 画面を一切切り替えずに、手元の物理デバイスでそれを確認できるか。
+AI エージェントを日常的に深く使うユーザーにとって、以下を瞬時に把握することは極めて重要です。
+
+- **Claude**: 現在のレートリミット窓でトークンがあと何 % 残っているか。いつリセットされるか。
+- **xAI**: API にチャージしたプリペイド残高があと何ドル残っているか。
+- **Codex (ChatGPT Business)**: 5 時間ローリング窓のメッセージクォータがあと何回残っているか。
 
 ## UX / UI 設計方針
 
-Stream Deck+ の限られた表示領域で視認性を最大化するため、複数プロバイダの同時表示は意図的に廃止し、**1 つのダイヤル列を深く使うコンソール設計**を採用します。
+Stream Deck+ の限られた表示領域で視認性を最大化するため、**1 ダイヤル = 1 コンソール**設計を採用しています。
 
 ### 物理インターフェースの割り当て
 
-- ダイヤル押し込み: 監視する AI プロバイダをサイクリックに切り替える
-- ダイヤル回転: 選択中プロバイダの表示ビューを切り替える
-- LCD キー / タッチストリップ: 現在選択中のプロバイダのロゴ、残量、ステータスカラーを描画する
+| 操作 | 動作 |
+|------|------|
+| ダイヤル押し込み | 監視プロバイダをサイクル切替（Claude → xAI → Codex） |
+| ダイヤル回転 | 表示ビューを切替（Minimal ↔ Detail） |
+| タッチストリップタップ | 現在プロバイダの表示を即時更新 |
 
 ### 表示ビュー
 
-- `View 1 (Minimal)`: 残量の数字と警告色のみを表示するチラ見用ビュー
-- `View 2 (Detail)`: リセット時刻や上限値などを併記する詳細ビュー
-
-閾値を下回った場合は赤系表示や点滅で、視界の端でも直感的に枯渇の危機を知らせることを想定しています。
+- **Minimal**: 残量 % の数字のみを大きく表示（チラ見用）
+- **Detail**: リセット時刻を追加表示
 
 ## アーキテクチャ
 
-UI の描画とバックエンド通信を分離するため、次の 2 層構成を想定しています。
-
-1. `stream-deck-plugin`
-2. `local-collector`
-
-### `stream-deck-plugin`
-
-- Stream Deck SDK に基づく UI 描画
-- 色変更と表示モード切り替え
-- ダイヤル操作イベントの処理
-
-### `local-collector`
-
-- バックグラウンドでの API ポーリングやローカルファイル監視
-- 各プロバイダのデータ正規化
-- プラグイン側への軽量 JSON 供給
-
-### 想定する共通スキーマ
-
-通貨バジェットと回数系レートリミットの両方を吸収できる形にします。
-
-```json
-{
-  "provider": "xai",
-  "status": "warning",
-  "budget_type": "currency",
-  "remaining_value": 4.5,
-  "total_budget": 25.0,
-  "remaining_percent": 18,
-  "reset_at": null,
-  "fetched_at": "2026-03-07T15:10:05Z"
-}
+```
+Stream Deck アプリ
+  └── packages/plugin      (Elgato SDK, Rollup バンドル)
+        │  child_process.fork() + IPC (process.send / process.on('message'))
+        └── packages/collector   (Node.js デーモン, axios ポーリング)
+              └── packages/shared     (Zod スキーマ / 型定義)
 ```
 
-## Provider 別の方針とデータ取得アプローチ
+### `packages/plugin`
+
+- `@elgato/streamdeck` SDK によるエンコーダー UI 制御
+- ダイヤル操作イベント（DialDown / DialRotate / TouchTap）のハンドリング
+- 起動時に Collector を `child_process.fork()` でデタッチ起動
+- `streamDeck.settings.getGlobalSettings()` で API キーを管理
+
+### `packages/collector`
+
+- Claude / xAI / Codex 各プロバイダへの定期ポーリング（デフォルト 60 秒）
+- データを共通スキーマへ正規化し `process.send()` でプラグインへ送信
+- 各プロバイダの認証は `SET_CREDENTIALS` IPC メッセージで受け取る
+
+### `packages/shared`
+
+IPC ペイロードの Zod スキーマと TypeScript 型を定義します。
+
+```typescript
+// MetricData — プロバイダ共通の正規化メトリクス
+{
+  provider: "claude" | "xai" | "codex",
+  status: "normal" | "warning" | "critical" | "unknown" | "error",
+  budget_type: "currency" | "count" | "percent",
+  remaining_value: number | null,
+  total_budget: number | null,
+  remaining_percent: number | null,  // 0–100
+  reset_at: string | null,           // ISO 8601
+  fetched_at: string                 // ISO 8601
+}
+
+// IpcMessage — discriminated union
+| { type: "METRICS_UPDATE";   payload: MetricData }
+| { type: "SET_CREDENTIALS";  payload: ApiCredentials }
+| { type: "COLLECTOR_READY" }
+| { type: "COLLECTOR_ERROR";  payload: { message: string } }
+```
+
+## Provider 別のデータ取得アプローチ
 
 ### Claude (Anthropic)
 
-- 監視対象: API のレートリミット
-- アプローチ: Anthropic API のレスポンスヘッダから状態を取得し、UI 向けの共通スキーマへ正規化する
+- **Admin キー** (`sk-ant-admin-...`): `GET /v1/organizations/usage_report/messages` で組織のトークン使用量を取得。
+- **標準キー** (`sk-ant-api-...`): `GET /v1/models` へダミーリクエストを送り、レスポンスヘッダ `anthropic-ratelimit-tokens-remaining` / `anthropic-ratelimit-tokens-reset` をパース。
 
 ### xAI
 
-- 監視対象: API のプリペイド課金残高
-- アプローチ: 時間ベースの制限ではなく、API 残高があと何ドル残っているかにフォーカスする。`local-collector` から Billing 系情報を定期取得し、残高を描画する
+- `GET https://api.x.ai/v1/billing/teams/{team_id}/prepaid/balance`
+- レスポンスの `total.val` はセント単位の整数文字列（例: `"2000"` = $20.00）。
 
-### Codex (OpenAI / Copilot 等)
+### Codex (ChatGPT Business)
 
-- 監視対象: プロダクト固有の利用枠
-- アプローチ: 非公開 API を直接叩いて制限を消費するリスクを避けるため、非侵襲なローカル監視を採用する。公式デスクトップアプリや VS Code 拡張機能が保存しているローカル State を定期的に読み取り、表示されている利用残量を同期する
+- `~/.codex/auth.json`（または `$CODEX_HOME/auth.json`）から OAuth Bearer トークンを抽出。
+- `GET https://chatgpt.com/backend-api/wham/usage` で 5 時間ローリング窓のクォータ残数とリセット時刻を取得。
 
-## 実装フェーズ計画
+## ディレクトリ構成
 
-- Phase 0: アーキテクチャの妥当性評価、Codex のデータ取得パス特定、要件定義
-- Phase 1: Stream Deck プラグインの skeleton 実装と、ダイヤル操作によるモック UI の構築
-- Phase 2: `local-collector` の構築と、Claude / xAI / Codex 各アダプターの実装
-- Phase 3: 閾値設定と警告 UI アニメーションの実装
+```
+streamdeck-ai-agent-monitor/
+├── packages/
+│   ├── shared/                  # 共通スキーマ・型 (@ai-monitor/shared)
+│   │   └── src/
+│   │       ├── schemas.ts       # Zod スキーマ
+│   │       ├── types.ts         # infer 型エクスポート
+│   │       └── index.ts
+│   │
+│   ├── collector/               # バックグラウンド収集デーモン
+│   │   ├── .env.example
+│   │   └── src/
+│   │       ├── index.ts         # エントリーポイント（fork 対象）
+│   │       ├── ipc.ts           # process.send / on('message') ラッパー
+│   │       ├── poller.ts        # プロバイダごとの間欠ポーリング
+│   │       ├── utils.ts         # computeStatus / computePercent
+│   │       ├── providers/
+│   │       │   ├── claude.ts
+│   │       │   ├── xai.ts
+│   │       │   └── codex.ts
+│   │       └── test/            # node:test 単体テスト（15 件）
+│   │
+│   └── plugin/                  # Stream Deck プラグイン
+│       ├── manifest.json        # UUID: com.antigravity.aimonitor
+│       ├── rollup.config.mjs
+│       ├── layouts/
+│       │   └── custom-monitor.json   # 200×100px タッチストリップ定義
+│       └── src/
+│           ├── plugin.ts             # SDK 初期化・fork・IPC リスナー
+│           └── actions/
+│               └── monitor.ts        # @action デコレータ・dial イベント処理
+│
+├── tsconfig.base.json
+├── pnpm-workspace.yaml
+└── package.json
+```
+
+## セットアップ
+
+### 必要環境
+
+- Node.js 20 以上
+- pnpm 9 以上
+- Elgato Stream Deck+ 本体 + Stream Deck ソフトウェア 6.4 以上
+
+### インストールとビルド
+
+```bash
+pnpm install
+pnpm build          # shared → collector → plugin の順にビルド
+```
+
+### API キーの設定
+
+Stream Deck ソフトウェアのプロパティインスペクターから以下を設定します（Task 5 で実装予定）。現時点での開発・動作確認は `packages/collector/.env.example` を参考に環境変数で代替可能です。
+
+```bash
+# packages/collector/.env.example を参照
+CLAUDE_API_KEY=sk-ant-api-...   # または sk-ant-admin-...
+XAI_API_KEY=xai-...
+XAI_TEAM_ID=your-team-id
+# Codex は ~/.codex/auth.json を自動参照（設定不要）
+POLL_INTERVAL_MS=60000
+```
+
+### テスト
+
+```bash
+pnpm --filter @ai-monitor/collector test   # 15 件のユニットテスト
+```
+
+## タッチストリップのレイアウト
+
+| 領域 | 内容 |
+|------|------|
+| 左上（小） | プロバイダ名（CLAUDE / XAI / CODEX） |
+| 右上（小） | ステータスラベル（LOW / CRITICAL / ERROR） |
+| 中央（大） | 残量パーセンテージ（例: `72%`） |
+| 下部バー | プログレスバー（0〜100%） |
+| 右下（小） | リセット時刻（Detail ビュー時のみ） |
 
 ## 初版でやらないこと
 
