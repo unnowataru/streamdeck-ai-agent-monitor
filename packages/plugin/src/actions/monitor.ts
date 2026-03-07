@@ -9,6 +9,7 @@ import streamDeck, {
     type Text,
     type TouchTapEvent,
     type WillAppearEvent,
+    type WillDisappearEvent,
 } from "@elgato/streamdeck";
 import type { MetricData, QuotaStatus } from "@ai-monitor/shared";
 
@@ -33,9 +34,16 @@ export class MonitorAction extends SingletonAction {
     private currentView: ViewMode = "minimal";
     private latestMetrics: Partial<Record<Provider, MetricData>> = {};
     private activeProviders: Provider[] = [...PROVIDERS];
+    private isPaused = false;
+    private sendToCollector: ((msg: unknown) => void) | null = null;
 
     private get currentProvider(): Provider {
         return this.activeProviders[this.currentProviderIndex];
+    }
+
+    /** Called by plugin.ts to wire up IPC send. */
+    setCollectorSend(fn: (msg: unknown) => void): void {
+        this.sendToCollector = fn;
     }
 
     /** Called by plugin.ts after credentials are sent to limit which providers are cycled. */
@@ -56,7 +64,16 @@ export class MonitorAction extends SingletonAction {
     }
 
     onWillAppear(_ev: WillAppearEvent): void {
+        if (this.isPaused) {
+            this.sendToCollector?.({ type: "RESUME_POLLING" });
+            this.isPaused = false;
+        }
         void this.renderAll();
+    }
+
+    onWillDisappear(_ev: WillDisappearEvent): void {
+        this.sendToCollector?.({ type: "PAUSE_POLLING" });
+        this.isPaused = true;
     }
 
     /** Dial press → cycle active providers only. */
@@ -72,12 +89,14 @@ export class MonitorAction extends SingletonAction {
         void this.renderAll();
     }
 
-    /** Touch tap → re-render. Long touch → reset to Minimal view and first provider. */
+    /** Touch tap → force re-fetch. Long touch → reset to minimal view and first provider. */
     onTouchTap(ev: TouchTapEvent): void {
         if (ev.payload.hold) {
             this.currentProviderIndex = 0;
             this.currentView = "minimal";
             streamDeck.logger.info("[monitor] display reset via long touch");
+        } else {
+            this.sendToCollector?.({ type: "FORCE_POLL" });
         }
         void this.renderAll();
     }

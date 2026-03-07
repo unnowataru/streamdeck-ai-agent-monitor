@@ -8,7 +8,7 @@
     "Name": "AI Agent Monitor",
     "UUID": "com.antigravity.aimonitor",
     "Version": "1.0.0",
-    "SDKVersion": 2,
+    "SDKVersion": 3,
     "Software": {
         "MinimumVersion": "6.4"
     },
@@ -40,7 +40,7 @@
                 "TriggerDescription": {
                     "Rotate": "Switch view",
                     "Push": "Switch provider",
-                    "Touch": "Show details",
+                    "Touch": "Refresh",
                     "LongTouch": "Reset display"
                 }
             }

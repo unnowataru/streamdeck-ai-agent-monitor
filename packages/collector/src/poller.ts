@@ -49,6 +49,22 @@ export class Poller {
         this.onMetrics(metrics);
     }
 
+    pollAll(): void {
+        for (const provider of this.credentials.keys()) {
+            void this.poll(provider);
+        }
+    }
+
+    pause(): void {
+        this.stopAll();
+    }
+
+    resume(): void {
+        for (const provider of this.credentials.keys()) {
+            this.startPolling(provider);
+        }
+    }
+
     stopAll(): void {
         for (const timer of this.timers.values()) {
             clearInterval(timer);

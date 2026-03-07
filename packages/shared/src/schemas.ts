@@ -48,5 +48,8 @@ export const IpcMessageSchema = z.discriminatedUnion("type", [
         payload: z.object({
             message: z.string()
         })
-    })
+    }),
+    z.object({ type: z.literal("FORCE_POLL") }),
+    z.object({ type: z.literal("PAUSE_POLLING") }),
+    z.object({ type: z.literal("RESUME_POLLING") }),
 ]);

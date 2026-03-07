@@ -1,5 +1,5 @@
 import streamDeck from "@elgato/streamdeck";
-import { fork, type ChildProcess } from "child_process";
+import { fork, type ChildProcess, type Serializable } from "child_process";
 import path from "path";
 import { IpcMessageSchema } from "@ai-monitor/shared";
 import { MonitorAction } from "./actions/monitor";
@@ -77,6 +77,12 @@ function startCollector(): void {
 }
 
 startCollector();
+
+// Wire up IPC send so MonitorAction can send FORCE_POLL / PAUSE_POLLING / RESUME_POLLING.
+// Uses a closure over `collector` so restarts are transparent.
+monitorAction.setCollectorSend((msg: unknown) => {
+    if (collector.connected) collector.send(msg as Serializable);
+});
 
 // Refresh credentials whenever user saves new global settings
 streamDeck.settings.onDidReceiveGlobalSettings(() => {

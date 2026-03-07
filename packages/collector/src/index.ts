@@ -13,8 +13,11 @@ process.on("message", (raw: unknown) => {
     if (!result.success) return;
 
     const msg = result.data;
-    if (msg.type === "SET_CREDENTIALS") {
-        poller.setCredentials(msg.payload);
+    switch (msg.type) {
+        case "SET_CREDENTIALS":  poller.setCredentials(msg.payload); break;
+        case "FORCE_POLL":       poller.pollAll();                   break;
+        case "PAUSE_POLLING":    poller.pause();                     break;
+        case "RESUME_POLLING":   poller.resume();                    break;
     }
 });
 
