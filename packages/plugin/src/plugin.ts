@@ -8,54 +8,75 @@ import { MonitorAction } from "./actions/monitor";
 // At runtime __dirname = packages/plugin/dist/, so ../../collector/dist/index.js
 const COLLECTOR_PATH = path.join(__dirname, "../../collector/dist/index.js");
 
+const MAX_RETRIES   = 5;
+const BASE_DELAY_MS = 2_000;
+
 const monitorAction = new MonitorAction();
 
+let collector: ChildProcess;
+let retryCount = 0;
+
 // --- Fork the local collector -----------------------------------------------
-const collector: ChildProcess = fork(COLLECTOR_PATH, [], {
-    env: {
-        ...process.env,
-        POLL_INTERVAL_MS: String(60_000),
-    },
-    detached: false,
-    stdio: ["ignore", "ignore", "pipe", "ipc"],
-});
+function startCollector(): void {
+    collector = fork(COLLECTOR_PATH, [], {
+        env: {
+            ...process.env,
+            POLL_INTERVAL_MS: String(60_000),
+        },
+        detached: false,
+        stdio: ["ignore", "ignore", "pipe", "ipc"],
+    });
 
-collector.stderr?.on("data", (buf: Buffer) => {
-    streamDeck.logger.error(`[collector] ${buf.toString().trim()}`);
-});
+    collector.stderr?.on("data", (buf: Buffer) => {
+        streamDeck.logger.error(`[collector] ${buf.toString().trim()}`);
+    });
 
-collector.on("error", (err) => {
-    streamDeck.logger.error(`[collector] process error: ${err.message}`);
-});
+    collector.on("error", (err) => {
+        streamDeck.logger.error(`[collector] process error: ${err.message}`);
+    });
 
-collector.on("exit", (code) => {
-    streamDeck.logger.warn(`[collector] exited with code ${code}`);
-});
+    collector.on("exit", (code) => {
+        streamDeck.logger.warn(`[collector] exited with code ${code}`);
+        if (retryCount >= MAX_RETRIES) {
+            streamDeck.logger.error(`[collector] max retries (${MAX_RETRIES}) reached — giving up`);
+            return;
+        }
+        const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), 60_000);
+        retryCount++;
+        streamDeck.logger.info(
+            `[collector] restarting in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})`,
+        );
+        setTimeout(startCollector, delay);
+    });
 
-// --- IPC: collector → plugin -------------------------------------------------
-collector.on("message", (raw: unknown) => {
-    const result = IpcMessageSchema.safeParse(raw);
-    if (!result.success) {
-        streamDeck.logger.warn("[collector] received invalid IPC message");
-        return;
-    }
+    // --- IPC: collector → plugin ---------------------------------------------
+    collector.on("message", (raw: unknown) => {
+        const result = IpcMessageSchema.safeParse(raw);
+        if (!result.success) {
+            streamDeck.logger.warn("[collector] received invalid IPC message");
+            return;
+        }
 
-    const msg = result.data;
-    switch (msg.type) {
-        case "COLLECTOR_READY":
-            streamDeck.logger.info("[collector] ready — sending credentials");
-            void sendCredentials();
-            break;
+        const msg = result.data;
+        switch (msg.type) {
+            case "COLLECTOR_READY":
+                streamDeck.logger.info("[collector] ready — sending credentials");
+                retryCount = 0; // successful start — reset backoff counter
+                void sendCredentials();
+                break;
 
-        case "METRICS_UPDATE":
-            monitorAction.updateMetrics(msg.payload);
-            break;
+            case "METRICS_UPDATE":
+                monitorAction.updateMetrics(msg.payload);
+                break;
 
-        case "COLLECTOR_ERROR":
-            streamDeck.logger.error(`[collector] ${msg.payload.message}`);
-            break;
-    }
-});
+            case "COLLECTOR_ERROR":
+                streamDeck.logger.error(`[collector] ${msg.payload.message}`);
+                break;
+        }
+    });
+}
+
+startCollector();
 
 // Refresh credentials whenever user saves new global settings
 streamDeck.settings.onDidReceiveGlobalSettings(() => {
