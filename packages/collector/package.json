@@ -4,7 +4,7 @@
     "private": true,
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc -b",
+        "build": "rollup -c",
         "dev": "ts-node src/index.ts",
         "test": "tsc -b && node --test dist/test/utils.test.js dist/test/claude.test.js dist/test/xai.test.js dist/test/codex.test.js"
     },
@@ -13,7 +13,12 @@
         "axios": "^1.6.0"
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^25.0.7",
+        "@rollup/plugin-json": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-typescript": "^11.1.6",
         "@types/node": "^25.3.5",
+        "rollup": "^4.12.0",
         "ts-node": "^10.9.2"
     }
 }

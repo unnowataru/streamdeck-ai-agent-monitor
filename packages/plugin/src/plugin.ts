@@ -4,9 +4,9 @@ import path from "path";
 import { IpcMessageSchema } from "@ai-monitor/shared";
 import { MonitorAction } from "./actions/monitor";
 
-// Collector lives at packages/collector/dist/index.js relative to this bundle.
-// At runtime __dirname = packages/plugin/dist/, so ../../collector/dist/index.js
-const COLLECTOR_PATH = path.join(__dirname, "../../collector/dist/index.js");
+// Collector is bundled to a single file and placed alongside the plugin package.
+// At runtime __dirname = <plugin>.sdPlugin/dist/, so ../collector.js
+const COLLECTOR_PATH = path.join(__dirname, "../collector.js");
 
 const MAX_RETRIES   = 5;
 const BASE_DELAY_MS = 2_000;
