@@ -6,7 +6,7 @@
     "scripts": {
         "build": "tsc -b",
         "dev": "ts-node src/index.ts",
-        "test": "tsc -b && node --test dist/test/claude.test.js dist/test/xai.test.js dist/test/codex.test.js"
+        "test": "tsc -b && node --test dist/test/utils.test.js dist/test/claude.test.js dist/test/xai.test.js dist/test/codex.test.js"
     },
     "dependencies": {
         "@ai-monitor/shared": "workspace:*",

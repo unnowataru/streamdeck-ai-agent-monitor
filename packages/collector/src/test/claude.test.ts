@@ -57,3 +57,38 @@ test("claude: unknown status when headers are missing", async () => {
     assert.equal(metrics.total_budget, null);
     assert.equal(metrics.remaining_percent, null);
 });
+
+test("claude: admin key routes to usage_report endpoint", async () => {
+    let capturedUrl = "";
+    const adminGet = async (url: string, _config?: object) => {
+        capturedUrl = url;
+        return {
+            headers: {},
+            data: { data: { input_tokens: 100_000, output_tokens: 50_000 } },
+        };
+    };
+    const metrics = await fetchClaudeMetrics("sk-ant-admin-key-test", adminGet);
+
+    assert.ok(capturedUrl.includes("usage_report"), `expected usage_report in URL, got: ${capturedUrl}`);
+    assert.equal(metrics.provider, "claude");
+    assert.equal(metrics.status, "normal");
+    assert.equal(metrics.remaining_percent, null); // Admin API does not expose remaining %
+});
+
+test("claude: standard key routes to /v1/models endpoint", async () => {
+    let capturedUrl = "";
+    const stdGet = async (url: string, _config?: object) => {
+        capturedUrl = url;
+        return {
+            headers: {
+                "anthropic-ratelimit-tokens-remaining": "80000",
+                "anthropic-ratelimit-tokens-limit": "100000",
+            },
+            data: {},
+        };
+    };
+    const metrics = await fetchClaudeMetrics("sk-ant-api-key-test", stdGet);
+
+    assert.ok(capturedUrl.includes("/v1/models"), `expected /v1/models in URL, got: ${capturedUrl}`);
+    assert.equal(metrics.remaining_percent, 80);
+});
