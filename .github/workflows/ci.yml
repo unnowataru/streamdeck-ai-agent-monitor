@@ -84,6 +84,7 @@ jobs:
         run: |
           mkdir -p dist
           cp -r packages/plugin com.antigravity.aimonitor.sdPlugin
+          echo "iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAIAAADajyQQAAAAa0lEQVR4nO3PAQkAMAzAsAkZ9y/zMk5PoAKa2T1fNs8PwMDAkoHVAqsFVgusFlgtsFpgtcBqgdUCqwVWC6wWWC2wWmC1wGqB1QKrBVYLrBZYLbBaYLXAaoHVAqsFVgusFlgtsFpgtcBqgdW6NRXN26gj12MAAAAASUVORK5CYII=" | base64 -d > com.antigravity.aimonitor.sdPlugin/imgs/plugin.png
           cd com.antigravity.aimonitor.sdPlugin
           pnpm --package=@elgato/cli dlx streamdeck pack --output ../dist
 

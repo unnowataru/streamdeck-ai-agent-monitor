@@ -20,7 +20,7 @@
         {
             "key": "percent",
             "type": "text",
-            "rect": [3, 20, 194, 46],
+            "rect": [3, 23, 194, 43],
             "font": { "size": 40, "weight": 700 },
             "alignment": "center",
             "value": "--"
