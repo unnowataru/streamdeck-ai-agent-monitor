@@ -4,15 +4,16 @@
     "private": true,
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc",
+        "build": "tsc -b",
         "dev": "ts-node src/index.ts",
-        "test": "node --test"
+        "test": "tsc -b && node --test dist/test/claude.test.js dist/test/xai.test.js dist/test/codex.test.js"
     },
     "dependencies": {
-        "axios": "^1.6.0",
-        "@ai-monitor/shared": "workspace:*"
+        "@ai-monitor/shared": "workspace:*",
+        "axios": "^1.6.0"
     },
     "devDependencies": {
+        "@types/node": "^25.3.5",
         "ts-node": "^10.9.2"
     }
 }
