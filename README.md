@@ -1,120 +1,116 @@
 # Stream Deck+ AI Agent Rate Monitor
 
-This repository is an initial proposal for a public project that displays remaining usage and rate-limit proximity for Claude, xAI, and Codex on an Elgato Stream Deck+.
+このリポジトリは、Elgato Stream Deck+ 上に Claude、xAI、Codex の残量やレートリミット到達までの近さを表示するための公開プロジェクト初期提案です。
 
-The scope of this repository is intentionally limited for now. As of March 7, 2026, it contains design notes only. No plugin code has been implemented yet.
+現時点では意図的にスコープを絞っています。2026年3月7日時点では設計メモと構想整理のみを含み、まだプラグイン本体の実装コードは入っていません。
 
-## What is Elgato Stream Deck+?
+## Elgato Stream Deck+ とは何か
 
-Elgato Stream Deck+ is a desktop control surface with:
+Elgato Stream Deck+ は、次の要素を持つデスクトップ向けコントロールデバイスです。
 
-- 8 customizable LCD keys
-- 4 rotary dials with push support
-- a touch strip between the keys and dials
+- カスタマイズ可能な LCD キー 8 個
+- 押し込み対応の回転ダイヤル 4 個
+- キーとダイヤルの間にあるタッチストリップ
 
-Unlike a normal keyboard shortcut pad, Stream Deck+ can both trigger actions and display live status on its keys. That makes it a strong fit for an always-visible AI quota monitor: each key can act like a small status tile, while the dials and touch strip can switch providers, pages, or alert thresholds.
+単なるショートカットパッドと違い、Stream Deck+ は操作を実行するだけでなく、キー上に状態を常時表示できます。そのため、AI 利用残量のような「常時見えていてほしい情報」を載せる用途と相性が良いです。各キーを小さなステータスタイルとして使い、ダイヤルやタッチストリップでプロバイダ切り替え、表示ページ切り替え、警告閾値調整などを行う構成が考えられます。
 
-Official references:
+公式リファレンス:
 
 - Product page: <https://www.elgato.com/us/en/p/stream-deck-plus>
 - SDK overview: <https://docs.elgato.com/streamdeck/sdk/overview/>
 
-## Problem
+## 解決したい課題
 
-Power users often hit provider limits without enough warning. The practical need is not just "how much did I use?" but:
+AI を日常的に使うユーザーは、気づいたら provider limit に到達していた、という状況が起きやすいです。必要なのは単に「どれだけ使ったか」ではなく、次のような判断材料です。
 
-- how close am I to the next rate-limit wall?
-- when does the limit reset?
-- which provider still has enough headroom for the next heavy task?
-- can I see that without opening three separate dashboards?
+- 次のレートリミット壁までどれくらい余裕があるか
+- いつリセットされるか
+- 次の重い作業を投げるならどの provider がまだ安全か
+- それを 3 つのダッシュボードを開かずに確認できるか
 
-This project aims to answer those questions from a single Stream Deck+ surface.
+このプロジェクトは、その判断を 1 つの Stream Deck+ 上でできるようにすることを目標にします。
 
-## Goal
+## 目標
 
-Build a Stream Deck+ plugin that shows near-real-time usage headroom for:
+Claude、xAI、Codex の使用余力を Stream Deck+ 上でほぼリアルタイムに表示するプラグインを作ることです。
 
-- Claude
-- xAI
-- Codex
+想定している成果:
 
-Target outcomes:
+- 一目で分かる残量表示
+- リセットまでのカウントダウン表示
+- 閾値ベースの警告状態表示
+- 1 デバイス上での provider 横断比較
 
-- glanceable remaining capacity
-- reset countdowns
-- threshold-based warning states
-- one-device comparison across providers
+## 現在のスコープ
 
-## Current Scope
+このリポジトリが現時点で扱う範囲:
 
-This repository currently stops at:
+- 機能提案
+- UX 提案
+- アーキテクチャ提案
+- 実装計画
+- 調査メモ
 
-- feature proposal
-- UX proposal
-- architecture proposal
-- implementation plan
-- research notes
+まだ含めないもの:
 
-This repository does not yet include:
+- Stream Deck プラグイン実装
+- provider 連携コード
+- 認証情報処理
+- Stream Deck Marketplace 向けパッケージング
 
-- Stream Deck plugin code
-- provider integrations
-- credentials handling
-- packaging for the Stream Deck marketplace
+## 想定ユーザー体験
 
-## Proposed User Experience
+### デバイス上の見え方
 
-### Device-level behavior
+各 provider に対して 1 つのキーを割り当て、次のような情報を表示します。
 
-Each provider gets a key tile that shows:
+- provider 名
+- 残量パーセンテージ、または推定残リクエスト数 / 残トークン量
+- リセットまでの時間
+- 状態色
 
-- provider name
-- remaining percentage or estimated remaining requests/tokens
-- time to reset
-- status color
+状態色の案:
 
-Suggested visual states:
+- 緑: まだ十分余裕がある
+- 黄: 制限に近づいている
+- 赤: 枯渇が近い
+- 灰: データ取得不可
 
-- green: healthy headroom
-- yellow: approaching limit
-- red: close to exhaustion
-- gray: data unavailable
+### Stream Deck+ 固有の操作案
 
-### Stream Deck+ specific interactions
+- LCD キー: provider ごとの概要表示
+- タッチストリップ: `overview`、`detail`、`history-lite` のページ切り替え
+- ダイヤル: provider 切り替え、警告閾値調整、時間窓切り替え
+- ダイヤル押下: 警告ミュート、または強制更新
 
-- LCD keys: provider summary tiles
-- Touch strip: page switch between `overview`, `detail`, and `history-lite`
-- Dials: cycle provider, adjust alert thresholds, or change time window
-- Dial press: mute alerts or force refresh
+## 想定アーキテクチャ
 
-## Proposed Architecture
+最も安全なのは、次の 2 層構成です。
 
-The safest architecture is a two-part design:
+1. Stream Deck+ プラグイン UI
+2. ローカル sidecar collector サービス
 
-1. Stream Deck+ plugin UI
-2. local sidecar collector service
+### なぜ分けるのか
 
-### Why split it?
+プラグイン側は描画と操作に集中させるべきです。認証情報、API ポーリング、リトライ、正規化、キャッシュ管理は、ローカルで動く sidecar プロセスに寄せた方が責務分離が明確になります。
 
-The plugin should stay focused on rendering and interaction. Provider credentials, polling, retries, normalization, and cache logic are better handled in a local sidecar process.
-
-### High-level components
+### 大まかな構成要素
 
 - `stream-deck-plugin`
-  - renders key images and status text
-  - handles user interactions
-  - subscribes to normalized provider status
+  - キー画像とステータステキストを描画する
+  - デバイス操作を受け取る
+  - 正規化済み provider 状態を購読する
 - `local-collector`
-  - polls provider APIs
-  - reads rate-limit headers or usage metadata
-  - normalizes results into a shared schema
-  - stores short-lived cache for fast UI refresh
+  - provider API をポーリングする
+  - レートリミットヘッダや usage メタデータを読む
+  - 共通スキーマへ正規化する
+  - 高速 UI 更新のための短期キャッシュを持つ
 - `provider-adapters`
   - `anthropic-adapter`
   - `xai-adapter`
   - `codex-openai-adapter`
 
-### Proposed normalized schema
+### 想定する共通スキーマ
 
 ```json
 {
@@ -129,133 +125,134 @@ The plugin should stay focused on rendering and interaction. Provider credential
 }
 ```
 
-## Provider Strategy
+## Provider 別の方針
 
 ### Claude
 
-Primary plan:
+基本方針:
 
-- use Anthropic API rate-limit information as the source of truth when available
-- normalize request/token windows into a single device-friendly summary
+- 利用可能なら Anthropic API のレートリミット情報を正本として使う
+- request/token ごとの時間窓を、デバイス向けに分かりやすい単一サマリへ正規化する
 
-Official reference:
+公式リファレンス:
 
 - <https://docs.anthropic.com/en/api/rate-limits>
 
 ### xAI
 
-Primary plan:
+基本方針:
 
-- actively use the xAI API and its published rate-limit model
-- treat xAI as a first-class provider rather than a later add-on
+- xAI API を積極的に利用する
+- xAI を後付け provider ではなく、最初から主要 provider の 1 つとして扱う
 
-Official reference:
+公式リファレンス:
 
 - <https://docs.x.ai/docs/guides/rate-limits>
 
 ### Codex
 
-Primary plan:
+基本方針:
 
-- use OpenAI rate-limit information where the user's Codex workflow is backed by OpenAI API-accessible usage
+- ユーザーの Codex 利用が OpenAI API 経由の usage と結びついている場合は、そのレートリミット情報を使う
 
-Open question:
+未確定な点:
 
-- if the desired "Codex remaining quota" refers to product-specific limits that are not exposed through a stable public API, the first version may need either:
-  - an API-backed approximation
-  - local usage log estimation
-  - or a user-configured soft budget
+- ユーザーが見たい「Codex の残量」が、安定した公開 API から取れない product 固有制限を指す場合、初版では次のいずれかが必要になる可能性があります。
+  - API ベースの近似
+  - ローカル usage log からの推定
+  - ユーザー定義の soft budget
 
-Official reference:
+公式リファレンス:
 
 - <https://platform.openai.com/docs/guides/rate-limits>
 
-## Design Principles
+## 設計原則
 
-- one glance should be enough to choose the best provider for the next task
-- the plugin should degrade gracefully when one provider is temporarily unavailable
-- credentials should stay off the device UI layer whenever possible
-- provider-specific complexity should be hidden behind a common schema
-- visual density should stay low enough for Stream Deck+ viewing distance
+- 次のタスクをどの provider に投げるべきかを一目で判断できること
+- どれか 1 つの provider が一時的に落ちても graceful に劣化すること
+- 認証情報は可能な限りデバイス UI 層から分離すること
+- provider ごとの複雑さは共通スキーマの裏側へ隠すこと
+- Stream Deck+ の閲覧距離でも読みやすい情報密度に抑えること
 
-## Similar Projects and Research Notes
+## 類似プロジェクトと調査メモ
 
-This README was informed by official product/API documentation, GitHub survey, and public web/X discovery on March 7, 2026.
+この README は、2026年3月7日時点の公式ドキュメント、GitHub 調査、公開 web/X 上の情報収集をもとに整理しています。
 
-### What public research suggests
+### 公開調査から見えたこと
 
-- There is clear demand for usage-visibility tools around Claude and Codex.
-- Public GitHub search shows multiple usage trackers and menu bar dashboards.
-- Public web/X discovery shows interest in quota awareness and reset timing, but no clear widely-used Stream Deck+ plugin dedicated to cross-provider AI rate monitoring was found.
+- Claude や Codex の usage 可視化ツールには明確な需要があります。
+- GitHub 上には usage tracker や menubar dashboard が複数あります。
+- 公開 web/X 調査の範囲では、複数 AI provider のレートリミットを Stream Deck+ に常時表示する定番プラグインは見つかっていません。
 
-### Relevant references
+### 参考にした事例
 
 - `steipete/CodexBar`
-  - useful for always-visible multi-provider quota status and reset timing
+  - 複数 provider の残量や reset 時刻を常時見える形で出す発想が参考になる
 - `xiangz19/codex-ratelimit`
-  - useful for non-invasive Codex usage detection and warning-threshold thinking
+  - 非侵襲に Codex usage を把握し、警告閾値を扱う考え方が参考になる
 - `Maciek-roboblog/Claude-Code-Usage-Monitor`
-  - useful for burn-rate and "how long will this last?" framing
+  - burn rate と「あとどれくらい持つか」の見せ方が参考になる
 - `ujjwalm29/tokenator`
-  - useful for a common accounting model across multiple providers, including xAI-compatible usage
+  - xAI を含む複数 provider を共通会計モデルで扱う考え方が参考になる
 - `elgatosf/streamdeck-plugin-samples`
-  - useful for official Stream Deck plugin structure and device interaction patterns
+  - 公式の Stream Deck プラグイン構成とデバイス interaction pattern が参考になる
 
-### What to borrow
+### 取り入れたい点
 
-- compact glanceable status
-- always-visible provider comparison
-- non-invasive data collection where possible
-- predictive alerts before exhaustion
-- threshold warnings before hard failure
-- minimal friction for background refresh
+- 小さくても一目で分かる表示
+- provider 横断の常時比較
+- 可能な限り非侵襲なデータ取得
+- 枯渇前の予測警告
+- hard failure 前の閾値警告
+- バックグラウンド更新の摩擦を下げること
 
-### What not to copy
+### そのまま持ち込まない点
 
-- desktop-only assumptions
-- tight coupling to undocumented internal session formats
-- provider-specific UI that does not generalize
-- designs that depend on a single vendor's terminology
+- デスクトップ専用前提の UI
+- 非公開・非安定な内部 session format への強い依存
+- provider 固有すぎて共通化できない UI
+- 特定 vendor の用語に引きずられた設計
 
-## Implementation Plan
+## 実装計画
 
 ### Phase 0
 
-- finish README
-- validate feasible data sources per provider
-- confirm whether Codex-specific quota can be exposed directly or must be estimated
+- README を固める
+- provider ごとの実データ取得元の実現性を確認する
+- Codex 固有の残量が直接取れるか、推定が必要かを確定する
 
 ### Phase 1
 
-- create plugin skeleton
-- create local collector skeleton
-- define shared status schema
-- render mock tiles with static sample data
+- プラグイン skeleton を作る
+- local collector skeleton を作る
+- 共通ステータススキーマを定義する
+- ダミーデータで静的モック表示を作る
 
 ### Phase 2
 
-- implement xAI adapter first
-- implement Claude adapter second
-- implement Codex/OpenAI adapter third
-- add refresh scheduler and local cache
+- xAI adapter を最初に実装する
+- Claude adapter を次に実装する
+- Codex/OpenAI adapter をその次に実装する
+- 更新スケジューラとローカルキャッシュを追加する
 
 ### Phase 3
 
-- add device alerts
-- add threshold configuration
-- add compact history and last-refresh failure states
+- デバイス警告を追加する
+- 閾値設定を追加する
+- 簡易履歴と最終更新失敗状態を追加する
 
-## Non-Goals for the First Version
+## 初版でやらないこと
 
-- billing analytics
-- long-term token accounting
-- multi-user team dashboards
-- cloud-hosted synchronization
-- marketplace publication on day one
+- 請求分析
+- 長期トークン会計
+- 複数ユーザー向けチームダッシュボード
+- クラウド同期
+- 初日からの Marketplace 公開
 
-## Next Steps
+## 次のステップ
 
-1. Confirm provider-specific source-of-truth endpoints and headers.
-2. Choose plugin runtime and local sidecar stack.
-3. Build a static Stream Deck+ prototype with fake provider data.
-4. Add xAI first, then Claude, then Codex/OpenAI.
+1. provider ごとの正本 endpoint / header を確定する。
+2. plugin runtime と local sidecar の技術スタックを決める。
+3. ダミーデータを使った Stream Deck+ の静的プロトタイプを作る。
+4. xAI、Claude、Codex/OpenAI の順で adapter を実装する。
+
