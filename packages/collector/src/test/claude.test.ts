@@ -71,8 +71,9 @@ test("claude: admin key routes to usage_report endpoint", async () => {
 
     assert.ok(capturedUrl.includes("usage_report"), `expected usage_report in URL, got: ${capturedUrl}`);
     assert.equal(metrics.provider, "claude");
-    assert.equal(metrics.status, "normal");
-    assert.equal(metrics.remaining_percent, null); // Admin API does not expose remaining %
+    assert.equal(metrics.status, "unknown"); // remaining quota unknown via Admin API
+    assert.equal(metrics.remaining_value, 150_000); // total used tokens surfaced here
+    assert.equal(metrics.remaining_percent, null);
 });
 
 test("claude: standard key routes to /v1/models endpoint", async () => {

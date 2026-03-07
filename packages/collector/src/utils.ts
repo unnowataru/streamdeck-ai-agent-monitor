@@ -9,5 +9,5 @@ export function computeStatus(remainingPercent: number | null): QuotaStatus {
 
 export function computePercent(remaining: number | null, total: number | null): number | null {
     if (remaining === null || total === null || total === 0) return null;
-    return Math.min(100, Math.round((remaining / total) * 100));
+    return Math.max(0, Math.min(100, Math.round((remaining / total) * 100)));
 }

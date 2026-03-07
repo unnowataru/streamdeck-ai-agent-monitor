@@ -41,15 +41,13 @@ async function fetchAdminMetrics(apiKey: string, httpGet: HttpGetFn): Promise<Me
 
         return {
             provider: "claude",
-            status: "normal",
+            status: "unknown",
             budget_type: "count",
-            remaining_value: null,
+            remaining_value: totalUsed,
             total_budget: null,
             remaining_percent: null,
             reset_at: null,
             fetched_at: now,
-            // Surface usage in error_message field until we know the org limit
-            error_message: `Used: ${totalUsed.toLocaleString()} tokens (in=${inputTokens}, out=${outputTokens})`,
         };
     } catch (err: unknown) {
         return errorMetric("claude", now, err);

@@ -54,6 +54,10 @@ test("computePercent: caps at 100 when remaining exceeds total", () => {
     assert.equal(computePercent(150, 100), 100);
 });
 
+test("computePercent: clamps to 0 when remaining is negative (overdrawn)", () => {
+    assert.equal(computePercent(-500, 10000), 0);
+});
+
 test("computePercent: rounds to nearest integer", () => {
     // 1/3 * 100 = 33.33... → 33
     assert.equal(computePercent(1, 3), 33);

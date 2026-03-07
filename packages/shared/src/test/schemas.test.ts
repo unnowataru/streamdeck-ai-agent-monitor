@@ -70,6 +70,14 @@ test("ApiCredentialsSchema: accepts xai with api_key", () => {
     assert.ok(ApiCredentialsSchema.safeParse({ provider: "xai", api_key: "xai-xxx" }).success);
 });
 
+test("ApiCredentialsSchema: accepts xai with api_key and team_id", () => {
+    assert.ok(ApiCredentialsSchema.safeParse({ provider: "xai", api_key: "xai-xxx", team_id: "team-123" }).success);
+});
+
+test("ApiCredentialsSchema: accepts xai without team_id (optional)", () => {
+    assert.ok(ApiCredentialsSchema.safeParse({ provider: "xai", api_key: "xai-xxx" }).success);
+});
+
 test("ApiCredentialsSchema: accepts codex without api_key", () => {
     assert.ok(ApiCredentialsSchema.safeParse({ provider: "codex" }).success);
 });

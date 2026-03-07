@@ -75,12 +75,9 @@ async function sendCredentials(): Promise<void> {
     }
 
     if (s["xaiApiKey"]) {
-        if (s["xaiTeamId"]) {
-            process.env["XAI_TEAM_ID"] = s["xaiTeamId"];
-        }
         collector.send({
             type: "SET_CREDENTIALS",
-            payload: { provider: "xai", api_key: s["xaiApiKey"] },
+            payload: { provider: "xai", api_key: s["xaiApiKey"], team_id: s["xaiTeamId"] },
         });
     }
 

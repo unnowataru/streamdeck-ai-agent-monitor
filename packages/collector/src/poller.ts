@@ -39,8 +39,7 @@ export class Poller {
         if (provider === "claude" && creds?.provider === "claude") {
             metrics = await fetchClaudeMetrics(creds.api_key);
         } else if (provider === "xai" && creds?.provider === "xai") {
-            const teamId = process.env["XAI_TEAM_ID"] ?? "";
-            metrics = await fetchXaiMetrics(creds.api_key, teamId);
+            metrics = await fetchXaiMetrics(creds.api_key, creds.team_id ?? "");
         } else if (provider === "codex") {
             metrics = await fetchCodexMetrics();
         } else {

@@ -22,7 +22,8 @@ export const ApiCredentialsSchema = z.discriminatedUnion("provider", [
     }),
     z.object({
         provider: z.literal("xai"),
-        api_key: z.string().min(1)
+        api_key: z.string().min(1),
+        team_id: z.string().optional()
     }),
     z.object({
         provider: z.literal("codex")
