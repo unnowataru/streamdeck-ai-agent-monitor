@@ -7,8 +7,8 @@
     "Icon": "imgs/plugin",
     "Name": "AI Agent Monitor",
     "UUID": "com.antigravity.aimonitor",
-    "Version": "1.0.0",
-    "SDKVersion": 3,
+    "Version": "1.0.0.0",
+    "SDKVersion": 2,
     "Software": {
         "MinimumVersion": "6.4"
     },
