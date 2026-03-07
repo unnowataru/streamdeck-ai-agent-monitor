@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+    "Author": "Antigravity",
+    "Description": "Monitor Claude, xAI, and Codex API quotas and credits directly on your Stream Deck+.",
+    "Name": "AI Agent Monitor",
+    "UUID": "com.antigravity.aimonitor",
+    "Version": "1.0.0",
+    "SDKVersion": 2,
+    "Software": {
+        "MinimumVersion": "6.4"
+    },
+    "OS": [
+        {
+            "Platform": "windows",
+            "MinimumVersion": "10"
+        },
+        {
+            "Platform": "mac",
+            "MinimumVersion": "12"
+        }
+    ],
+    "NodeJS": {
+        "Version": "20",
+        "Debug": "enabled"
+    },
+    "Actions": [
+        {
+            "Name": "AI Monitor",
+            "UUID": "com.antigravity.aimonitor.monitor",
+            "Icon": "imgs/actions/monitor",
+            "Tooltip": "Displays remaining quota and credits for Claude, xAI, or Codex.",
+            "Controllers": ["Encoder"],
+            "Encoder": {
+                "layout": "layouts/custom-monitor.json",
+                "TriggerDescription": {
+                    "Rotate": "Switch view",
+                    "Push": "Switch provider",
+                    "Touch": "Show details",
+                    "LongTouch": "Reset display"
+                }
+            }
+        }
+    ]
+}
