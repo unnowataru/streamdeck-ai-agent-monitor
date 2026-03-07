@@ -72,8 +72,13 @@ export class MonitorAction extends SingletonAction {
         void this.renderAll();
     }
 
-    /** Touch tap → force immediate re-render. */
-    onTouchTap(_ev: TouchTapEvent): void {
+    /** Touch tap → re-render. Long touch → reset to Minimal view and first provider. */
+    onTouchTap(ev: TouchTapEvent): void {
+        if (ev.payload.hold) {
+            this.currentProviderIndex = 0;
+            this.currentView = "minimal";
+            streamDeck.logger.info("[monitor] display reset via long touch");
+        }
         void this.renderAll();
     }
 
