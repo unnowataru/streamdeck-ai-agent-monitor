@@ -67,11 +67,14 @@ async function sendCredentials(): Promise<void> {
     // all values stored via the property inspector are strings.
     const s = (await streamDeck.settings.getGlobalSettings()) as Record<string, string | undefined>;
 
+    const activeProviders: Array<"claude" | "xai" | "codex"> = [];
+
     if (s["claudeApiKey"]) {
         collector.send({
             type: "SET_CREDENTIALS",
             payload: { provider: "claude", api_key: s["claudeApiKey"] },
         });
+        activeProviders.push("claude");
     }
 
     if (s["xaiApiKey"]) {
@@ -79,10 +82,14 @@ async function sendCredentials(): Promise<void> {
             type: "SET_CREDENTIALS",
             payload: { provider: "xai", api_key: s["xaiApiKey"], team_id: s["xaiTeamId"] },
         });
+        activeProviders.push("xai");
     }
 
     // Codex needs no API key — always enable
     collector.send({ type: "SET_CREDENTIALS", payload: { provider: "codex" } });
+    activeProviders.push("codex");
+
+    monitorAction.setActiveProviders(activeProviders);
 }
 
 // --- Register action & connect -----------------------------------------------

@@ -32,9 +32,19 @@ export class MonitorAction extends SingletonAction {
     private currentProviderIndex = 0;
     private currentView: ViewMode = "minimal";
     private latestMetrics: Partial<Record<Provider, MetricData>> = {};
+    private activeProviders: Provider[] = [...PROVIDERS];
 
     private get currentProvider(): Provider {
-        return PROVIDERS[this.currentProviderIndex];
+        return this.activeProviders[this.currentProviderIndex];
+    }
+
+    /** Called by plugin.ts after credentials are sent to limit which providers are cycled. */
+    setActiveProviders(providers: Provider[]): void {
+        this.activeProviders = providers.length > 0 ? providers : [...PROVIDERS];
+        if (this.currentProviderIndex >= this.activeProviders.length) {
+            this.currentProviderIndex = 0;
+        }
+        void this.renderAll();
     }
 
     /** Called by plugin.ts whenever the collector sends METRICS_UPDATE. */
@@ -49,9 +59,9 @@ export class MonitorAction extends SingletonAction {
         void this.renderAll();
     }
 
-    /** Dial press → cycle providers. */
+    /** Dial press → cycle active providers only. */
     onDialDown(_ev: DialDownEvent): void {
-        this.currentProviderIndex = (this.currentProviderIndex + 1) % PROVIDERS.length;
+        this.currentProviderIndex = (this.currentProviderIndex + 1) % this.activeProviders.length;
         streamDeck.logger.info(`[monitor] provider → ${this.currentProvider}`);
         void this.renderAll();
     }
@@ -70,7 +80,7 @@ export class MonitorAction extends SingletonAction {
     private async renderAll(): Promise<void> {
         const metrics  = this.latestMetrics[this.currentProvider];
         const feedback = buildFeedback(this.currentProvider, this.currentView, metrics);
-        const nextProvider = PROVIDERS[(this.currentProviderIndex + 1) % PROVIDERS.length];
+        const nextProvider = this.activeProviders[(this.currentProviderIndex + 1) % this.activeProviders.length];
 
         for (const act of this.actions) {
             if (isDialAction(act)) {
