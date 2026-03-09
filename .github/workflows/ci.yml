@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: [v*]
   pull_request:
     branches: [main]
 
@@ -54,11 +55,11 @@ jobs:
       - name: Build plugin
         run: pnpm --filter com.antigravity.aimonitor build
 
-  release:
+  package-plugin:
     name: Package Plugin
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -80,18 +81,14 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
-      - name: Prepare plugin directory
-        run: |
-          mkdir -p dist
-          cp -r packages/plugin com.antigravity.aimonitor.sdPlugin
-          cp packages/collector/dist/collector.js com.antigravity.aimonitor.sdPlugin/collector.js
-          echo "iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAIAAADajyQQAAAAa0lEQVR4nO3PAQkAMAzAsAkZ9y/zMk5PoAKa2T1fNs8PwMDAkoHVAqsFVgusFlgtsFpgtcBqgdUCqwVWC6wWWC2wWmC1wGqB1QKrBVYLrBZYLbBaYLXAaoHVAqsFVgusFlgtsFpgtcBqgdW6NRXN26gj12MAAAAASUVORK5CYII=" | base64 -d > com.antigravity.aimonitor.sdPlugin/imgs/plugin.png
+      - name: Stage plugin package
+        run: node scripts/stage-plugin.mjs
 
       - name: Validate plugin
-        run: pnpm --package=@elgato/cli dlx streamdeck validate com.antigravity.aimonitor.sdPlugin
+        run: pnpm --package=@elgato/cli dlx streamdeck validate dist/com.antigravity.aimonitor.sdPlugin
 
       - name: Package plugin
-        run: pnpm --package=@elgato/cli dlx streamdeck pack com.antigravity.aimonitor.sdPlugin --output dist
+        run: pnpm --package=@elgato/cli dlx streamdeck pack dist/com.antigravity.aimonitor.sdPlugin --output dist
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v4
@@ -99,3 +96,24 @@ jobs:
           name: streamdeck-plugin
           path: dist/*.streamDeckPlugin
           retention-days: 30
+
+  publish-release:
+    name: Publish Release
+    needs: package-plugin
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged plugin
+        uses: actions/download-artifact@v4
+        with:
+          name: streamdeck-plugin
+          path: dist
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.streamDeckPlugin
+          generate_release_notes: true
